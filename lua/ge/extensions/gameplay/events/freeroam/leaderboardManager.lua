@@ -1,8 +1,9 @@
 local M = {}
 
 local leaderboardFile = "career/rls_career/races_leaderboard.json"
-local leaderboardFileMP = "rlsmp/leaderboards/races_leaderboard.json" -- I don't know how the fuck to make these files exist.
+local leaderboardFileMP = "rlsmp/leaderboards/races_leaderboard.json" --KN8R: Make this file exist.
 local leaderboard = {}
+local leaderboardMP = {}
 
 local level
 
@@ -16,6 +17,7 @@ local function loadLeaderboard()
         local file = savePath .. '/' .. leaderboardFile
         leaderboard = jsonReadFile(file)
     elseif MPCoreNetwork.isMPSession() then -- we're in MP baby!
+        --MP.TriggerServerEvent("sendUserLeaderboard") -- get the leaderboard from the server, this should be done onPlayerJoin
         leaderboard = jsonReadFile(leaderboardFileMP)
     end
 end
@@ -31,12 +33,23 @@ local function saveLeaderboard(currentSavePath)
         if not leaderboard then
             leaderboard = {}
         end
-        career_saveSystem.jsonWriteFileSafe(leaderboardFileMP, leaderboard, true)
+        career_saveSystem.jsonWriteFileSafe(leaderboardFileMP, leaderboardMP, true)
+        MP.TriggerServerEvent("getUserLeaderboard", true)
     end
 end
 
-local function getLeaderboardMP(leaderboardData)
-    -- Get the server's leaderboard
+local function getLeaderboardMP(leaderboarddata)
+    if leaderboarddata then 
+        print("Leaderboard data was received: " .. leaderboarddata)
+    else
+        print("Leaderboard data was not received!")
+    end
+    return
+end
+
+local function sendLeaderboardMP(leaderboardData)
+    print("The server has asked for leaderboard data")
+    MP.TriggerServerEvent(getUserLeaderboard, leaderboardData)
 end
 
 local function isBestTime(entry)
