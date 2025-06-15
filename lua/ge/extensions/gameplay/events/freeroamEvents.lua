@@ -175,7 +175,6 @@ local function payoutRace()
             local hotlapMultiplier = utils.hotlapMultiplier(lapCount)
             reward = reward * hotlapMultiplier
             hotlapMessage = string.format("\nHotlap Multiplier: %.2f", hotlapMultiplier)
-            
         end
 
         if newBest and not newBestSession then
@@ -516,7 +515,6 @@ local function onBeamNGTrigger(data)
             utils.playCheckpointSound()
             timerActive = false
             lapCount = lapCount + 1
-            TriggerServerEvent("raceFinishLap", lapCount) --KN8R: Tell server you completed lap
             local reward = payoutRace()
             currCheckpoint = nil
             mSplitTimes = {}
@@ -548,7 +546,6 @@ local function onBeamNGTrigger(data)
             mInventoryId = career_modules_inventory and career_modules_inventory.getInventoryIdFromVehicleId(data.subjectID) or data.subjectID
             invalidLap = false
 
-            TriggerServerEvent("raceStart", raceName) --KN8R: Telling the server a race has started.
             utils.displayStartMessage(raceName)
             utils.setActiveLight(raceName, "green")
 
@@ -591,7 +588,7 @@ local function onBeamNGTrigger(data)
                 checkpointsHit = checkpointsHit + 1
                 currCheckpoint = checkpointIndex
                 mSplitTimes[checkpointsHit] = in_race_time
-                utils.playCheckpointSound()               
+                utils.playCheckpointSound()
 
                 -- Prepare the next checkpoint
                 if isAlt then
@@ -621,7 +618,6 @@ local function onBeamNGTrigger(data)
                     checkpointMessage = string.format("Checkpoint %d/%d - Time: %s", checkpointsHit, totalCheckpoints,
                         utils.formatTime(in_race_time))
                 end
-                TriggerServerEvent("raceCheckpoint", checkpointIndex) --KN8R: Tell server you hit a checkpoint
                 utils.displayMessage(checkpointMessage, 7)
                 Assets:displayAssets(data)
             else
@@ -785,7 +781,6 @@ function M.onGetRawPoiListForLevel(levelIdentifier, elements)
         end
     end
 end
-
 
 M.onBeamNGTrigger = onBeamNGTrigger
 M.onUpdate = onUpdate
