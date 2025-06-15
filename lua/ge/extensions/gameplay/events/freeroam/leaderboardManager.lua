@@ -1,24 +1,42 @@
 local M = {}
 
 local leaderboardFile = "career/rls_career/races_leaderboard.json"
+local leaderboardFileMP = "rlsmp/leaderboards/races_leaderboard.json" -- I don't know how the fuck to make these files exist.
 local leaderboard = {}
 
 local level
 
 local function loadLeaderboard()
-    if not career_career or not career_career.isActive() then
-        return
+    if not MPCoreNetwork.isMPSession() or nil then -- if MP false do old stuff
+        print("Doing old stuff, not MP")
+        if not career_career or not career_career.isActive() then
+            return
+        end
+        local saveSlot, savePath = career_saveSystem.getCurrentSaveSlot()
+        local file = savePath .. '/' .. leaderboardFile
+        leaderboard = jsonReadFile(file)
+    elseif MPCoreNetwork.isMPSession() then -- we're in MP baby!
+        leaderboard = jsonReadFile(leaderboardFileMP)
     end
-    local saveSlot, savePath = career_saveSystem.getCurrentSaveSlot()
-    local file = savePath .. '/' .. leaderboardFile
-    leaderboard = jsonReadFile(file)
 end
 
 local function saveLeaderboard(currentSavePath)
-    if not leaderboard then
-        leaderboard = {}
+    if not MPCoreNetwork.isMPSession() or nil then -- if MP false do old stuff
+        if not leaderboard then
+            leaderboard = {}
+        end
+        career_saveSystem.jsonWriteFileSafe(currentSavePath .. "/" .. leaderboardFile, leaderboard, true)
+    elseif MPCoreNetwork.isMPSession() then -- we're in MP
+        print("We're in MP write to a different file")
+        if not leaderboard then
+            leaderboard = {}
+        end
+        career_saveSystem.jsonWriteFileSafe(leaderboardFileMP, leaderboard, true)
     end
-    career_saveSystem.jsonWriteFileSafe(currentSavePath .. "/" .. leaderboardFile, leaderboard, true)
+end
+
+local function getLeaderboardMP(leaderboardData)
+    -- Get the server's leaderboard, I dunno anymore. I think a lot needs  to be moved server-side
 end
 
 local function isBestTime(entry)
@@ -54,7 +72,6 @@ local function isBestTime(entry)
     return entry.time < leaderboardEntry.time
 end
 
-
 local function addLeaderboardEntry(entry)
     level = getCurrentLevelIdentifier()
 
@@ -64,7 +81,7 @@ local function addLeaderboardEntry(entry)
     if not leaderboard then
         leaderboard = {}
     end
-    if not leaderboard[level] then 
+    if not leaderboard[level] then
         leaderboard[level] = {}
     end
     if not leaderboard[level][tostring(entry.inventoryId)] then
