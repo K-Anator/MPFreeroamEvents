@@ -36,7 +36,7 @@ local function saveLeaderboard(currentSavePath)
 end
 
 local function getLeaderboardMP(leaderboardData)
-    -- Get the server's leaderboard, I dunno anymore. I think a lot needs  to be moved server-side
+    -- Get the server's leaderboard
 end
 
 local function isBestTime(entry)

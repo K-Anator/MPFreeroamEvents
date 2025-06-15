@@ -257,8 +257,8 @@ local function payoutDragRace(raceName, finishTime, finishSpeed, vehId)
     local newBestTime = leaderboardManager.addLeaderboardEntry(newEntry)
 
     if not career_career.isActive() then
-        local message = string.format("%s\nTime: %s\nSpeed: %.2f mph", races[raceName].label, utils.formatTime(finishTime),
-            finishSpeed)
+        local message = string.format("%s\nTime: %s\nSpeed: %.2f mph", races[raceName].label,
+            utils.formatTime(finishTime), finishSpeed)
         utils.displayMessage(message, 10)
         return 0
     end
@@ -305,8 +305,8 @@ local function payoutDragRace(raceName, finishTime, finishSpeed, vehId)
 
     -- Prepare the completion message
     local message = string.format("%s\n%s\nTime: %s\nSpeed: %.2f mph\nXP: %d | Reward: $%.2f",
-        newBestTime and "Congratulations! New Best Time!" or "", raceData.label, utils.formatTime(finishTime), finishSpeed,
-        xp, reward)
+        newBestTime and "Congratulations! New Best Time!" or "", raceData.label, utils.formatTime(finishTime),
+        finishSpeed, xp, reward)
 
     if career_modules_hardcore.isHardcoreMode() then
         message = message .. "\nHardcore mode is enabled, all rewards are halved."
@@ -395,12 +395,15 @@ local function onBeamNGTrigger(data)
     if be:getPlayerVehicleID(0) ~= data.subjectID then
         return
     end
-    if gameplay_walk.isWalking() then return end
+    if gameplay_walk.isWalking() then
+        return
+    end
     if career_career.isActive() then
         if not career_modules_inventory.getInventoryIdFromVehicleId(data.subjectID) then
             return
         end
-        local vehicle = career_modules_inventory.getVehicles()[career_modules_inventory.getInventoryIdFromVehicleId(data.subjectID)]
+        local vehicle = career_modules_inventory.getVehicles()[career_modules_inventory.getInventoryIdFromVehicleId(
+            data.subjectID)]
         if vehicle.loanType then
             return
         end
@@ -531,6 +534,9 @@ local function onBeamNGTrigger(data)
                 currentExpectedCheckpoint = checkpointManager.enableCheckpoint(0)
             end
             invalidLap = false
+            if MPCoreNetwork.isMPSession() then
+                TriggerServerEvent("raceFinishLap", lapCount) -- KN8R: Let server know user completed a lap
+            end
         elseif event == "enter" and staged == raceName then
             -- Start the race
             if career_career.isActive() then
@@ -543,12 +549,12 @@ local function onBeamNGTrigger(data)
             in_race_time = 0
             mActiveRace = raceName
             lapCount = 0
-            mInventoryId = career_modules_inventory and career_modules_inventory.getInventoryIdFromVehicleId(data.subjectID) or data.subjectID
+            mInventoryId = career_modules_inventory and
+                               career_modules_inventory.getInventoryIdFromVehicleId(data.subjectID) or data.subjectID
             invalidLap = false
 
             utils.displayStartMessage(raceName)
             utils.setActiveLight(raceName, "green")
-
             -- Handle drift races
             if utils.tableContains(races[raceName].type, "drift") then
                 gameplay_drift_general.setContext("inChallenge")
@@ -575,6 +581,10 @@ local function onBeamNGTrigger(data)
                 checkpointManager.setAltRoute(mAltRoute)
 
                 currentExpectedCheckpoint = checkpointManager.enableCheckpoint(0)
+            end
+
+            if MPCoreNetwork.isMPSession() then
+                TriggerServerEvent("raceBegin", raceName) -- KN8R: Let the server know a race started
             end
         else
             -- Player is not staged or race is not active
@@ -612,14 +622,17 @@ local function onBeamNGTrigger(data)
                     totalDiff = in_race_time - (leaderboardEntry.splitTimes[checkpointsHit] or 0)
 
                     checkpointMessage = string.format("Checkpoint %d/%d - Time: %s\nSplit: %s | Total: %s",
-                        checkpointsHit, totalCheckpoints, utils.formatTime(in_race_time), formatSplitDifference(splitDiff),
-                        formatSplitDifference(totalDiff))
+                        checkpointsHit, totalCheckpoints, utils.formatTime(in_race_time),
+                        formatSplitDifference(splitDiff), formatSplitDifference(totalDiff))
                 else
                     checkpointMessage = string.format("Checkpoint %d/%d - Time: %s", checkpointsHit, totalCheckpoints,
                         utils.formatTime(in_race_time))
                 end
                 utils.displayMessage(checkpointMessage, 7)
                 Assets:displayAssets(data)
+                if MPCoreNetwork.isMPSession() then
+                    TriggerServerEvent("raceCheckpoint", checkpointsHit) -- KN8R: Let the server know a checkpoint was hit
+                end
             else
                 local missedCheckpoints = checkpointIndex - currentExpectedCheckpoint
                 if missedCheckpoints > 0 then
@@ -640,6 +653,9 @@ local function onBeamNGTrigger(data)
                         totalCheckpoints, utils.formatTime(in_race_time))
                     message = message .. "\n" .. checkpointMessage
                     utils.displayMessage(message, 10)
+                    if MPCoreNetwork.isMPSession() then
+                        TriggerServerEvent("raceLapInvalidated", missedCheckpoints) -- KN8R: Let the server know a checkpoint was missed
+                    end
                 end
             end
         end
@@ -672,6 +688,9 @@ local function onBeamNGTrigger(data)
             if career_career.isActive() then
                 career_modules_pauseTime.enablePauseCounter()
             end
+            if MPCoreNetwork.isMPSession() then
+                TriggerServerEvent("raceEnd", raceName) -- KN8R: Let the server know a race finished
+            end            
         end
     elseif triggerType == "pits" then
         if event == "enter" and mActiveRace == raceName then
@@ -685,6 +704,9 @@ local function onBeamNGTrigger(data)
             else
                 pits.stopThenLimit(37, "MPH")
             end
+            if MPCoreNetwork.isMPSession() then
+                TriggerServerEvent("racePitEnter", lapCount) -- KN8R: Let the server know pit was entered
+            end
         elseif event == "exit" and mActiveRace == raceName then
             -- Handle pit exit
             pits.toggleSpeedLimit()
@@ -692,7 +714,10 @@ local function onBeamNGTrigger(data)
             if obj then
                 obj:queueLuaCommand("obj:setGhostEnabled(false)")
             end
-        end    
+            if MPCoreNetwork.isMPSession() then
+                TriggerServerEvent("racePitExit", lapCount) -- KN8R: Let the server know pit was exited
+            end
+        end
     else
         -- print("Unknown trigger type: " .. triggerType)
     end
@@ -740,8 +765,10 @@ end
 local function formatEventPoi(raceName, race)
     local startObj = scenetree.findObject("fre_start_" .. raceName)
     local pos = startObj and startObj:getPosition() or nil
-    
-    if not pos then return nil end
+
+    if not pos then
+        return nil
+    end
 
     local levelIdentifier = getCurrentLevelIdentifier()
     local preview = "/levels/" .. levelIdentifier .. "/facilities/freeroamEvents/" .. raceName .. ".jpg"
@@ -788,7 +815,9 @@ M.onUpdate = onUpdate
 M.payoutRace = payoutRace
 M.payoutDragRace = payoutDragRace
 M.onWorldReadyState = onWorldReadyState
-M.getRace = function(raceName) return races[raceName] end
+M.getRace = function(raceName)
+    return races[raceName]
+end
 
 M.onInit = onInit
 
