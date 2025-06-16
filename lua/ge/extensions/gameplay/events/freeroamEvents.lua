@@ -391,6 +391,7 @@ local function exitRace()
     end
 end
 
+
 local function onBeamNGTrigger(data)
     if be:getPlayerVehicleID(0) ~= data.subjectID then
         return
