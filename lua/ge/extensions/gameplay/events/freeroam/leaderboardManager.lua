@@ -6,10 +6,6 @@ local leaderboard = {}
 local level
 
 local function loadLeaderboard()
-    if MPCoreNetwork.isMPSession() then
-        TriggerServerEvent("sendLeaderboard", "Gib")
-    end
-
     if not career_career or not career_career.isActive() then
         return
     end
@@ -25,11 +21,12 @@ local function saveLeaderboard(currentSavePath)
     if not MPCoreNetwork.isMPSession() or nil then -- if MP false do old stuff
         career_saveSystem.jsonWriteFileSafe(currentSavePath .. "/" .. leaderboardFile, leaderboard, true)
     elseif MPCoreNetwork.isMPSession() then -- we're in MP
-        TriggerServerEvent("getLeaderboard", jsonEncodePretty(leaderboard, 1, 2))
+        TriggerServerEvent("getLeaderboard", jsonEncode(leaderboard))
     end
 end
 
 local function retrieveServerLeaderboard(leaderboardData) -- called by sever on join
+    print("Received leaderboard data from server: " .. leaderboardData)
     leaderboard = jsonDecode(leaderboardData)
 end
 
@@ -120,6 +117,7 @@ local function onWorldReadyState(state)
         level = getCurrentLevelIdentifier()
         loadLeaderboard()
     end
+    AddEventHandler("retrieveServerLeaderboard", retrieveServerLeaderboard)
 end
 
 local function onSaveCurrentSaveSlot(currentSavePath)
