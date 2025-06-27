@@ -4,8 +4,13 @@ local leaderboardFile = "career/rls_career/races_leaderboard.json"
 local leaderboard = {}
 
 local level
+local currentConfig
 
 local function loadLeaderboard()
+    if MPCoreNetwork.isMPSession() then
+        TriggerServerEvent("sendLeaderboard", "please")
+        return
+    end
     if not career_career or not career_career.isActive() then
         return
     end
@@ -28,6 +33,8 @@ end
 local function retrieveServerLeaderboard(leaderboardData) -- called by sever on join
     print("Received leaderboard data from server: " .. leaderboardData)
     leaderboard = jsonDecode(leaderboardData)
+    dump(leaderboard)
+    print("Leaderboard Data: " .. tostring(leaderboard))
 end
 
 local function isBestTime(entry)
@@ -40,7 +47,11 @@ local function isBestTime(entry)
         return true
     end
 
-    leaderboardEntry = leaderboardEntry[tostring(entry.inventoryId)] or {}
+    if not MPCoreNetwork.isMPSession() then
+        leaderboardEntry = leaderboardEntry[tostring(entry.inventoryId)] or {}
+    else
+        leaderboardEntry = leaderboardEntry[currentConfig] or {}
+    end
     if not leaderboardEntry then
         return true
     end
@@ -75,10 +86,19 @@ local function addLeaderboardEntry(entry)
     if not leaderboard[level] then
         leaderboard[level] = {}
     end
-    if not leaderboard[level][tostring(entry.inventoryId)] then
-        leaderboard[level][tostring(entry.inventoryId)] = {}
+
+    local leaderboardEntry
+    if not MPCoreNetwork.isMPSession() then
+        if not leaderboard[level][tostring(entry.inventoryId)] then
+            leaderboard[level][tostring(entry.inventoryId)] = {}
+        end
+        leaderboardEntry = leaderboard[level][tostring(entry.inventoryId)]
+    else
+        if not leaderboard[level][currentConfig] then
+            leaderboard[level][currentConfig] = {}
+        end
+        leaderboardEntry = leaderboard[level][currentConfig]
     end
-    local leaderboardEntry = leaderboard[level][tostring(entry.inventoryId)]
     if isBestTime(entry) then
         local raceLabel = entry.raceLabel
         leaderboardEntry[raceLabel] = leaderboardEntry[raceLabel] or {}
@@ -94,6 +114,9 @@ local function addLeaderboardEntry(entry)
 end
 
 local function clearLeaderboardForVehicle(inventoryId)
+    if MPCoreNetwork.isMPSession() then
+        return
+    end
     level = getCurrentLevelIdentifier()
     if not leaderboard then
         leaderboard = {}
@@ -129,6 +152,12 @@ local function getLeaderboardEntry(inventoryId, raceLabel)
     if not leaderboard then
         leaderboard = {}
     end
+    if MPCoreNetwork.isMPSession() then
+        if not leaderboard[level] then
+            return {}
+        end
+        return leaderboard[level][raceLabel]
+    end
     if not leaderboard[level] or not leaderboard[level][tostring(inventoryId)] then
         return {}
     end
@@ -143,8 +172,25 @@ local function onCareerActive(active)
     end
 end
 
-M.loadLeaderboard = loadLeaderboard
+local function onVehicleSwitched()
+    getPlayerVehicle(0):queueLuaCommand([[
+    local config = v.config.partConfigFilename
+    obj:queueGameEngineLua("gameplay_events_freeroam_leaderboardManager.returnConfig('" .. config .."')")
+    ]])
+end
 
+function M.returnConfig(config)
+    print(config)
+    currentConfig = config
+end
+
+function M.getLeaderboard()
+    return leaderboard
+end
+
+M.retrieveServerLeaderboard = retrieveServerLeaderboard -- KN8R: adding made data show up again
+M.loadLeaderboard = loadLeaderboard
+M.onVehicleSwitched = onVehicleSwitched
 M.onVehicleRemoved = clearLeaderboardForVehicle
 M.onCareerActive = onCareerActive
 
