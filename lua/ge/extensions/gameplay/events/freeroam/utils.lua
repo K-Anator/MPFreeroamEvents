@@ -260,9 +260,6 @@ local function displayStagedMessage(vehId, raceName, getMessage)
     if career_career.isActive() then
         vehId = career_modules_inventory.getInventoryIdFromVehicleId(vehId) or vehId
     end
-    if MPCoreNetwork.isMPSession() then
-        vehId = leaderboardManager.returnConfig(0) -- KN8R: Added to try and change number to config, doesn't work
-    end
     local race = races[raceName]
     local leaderboardEntry = leaderboardManager.getLeaderboardEntry(vehId, getRaceLabel(raceName)) or {}
     local careerMode = career_career.isActive()

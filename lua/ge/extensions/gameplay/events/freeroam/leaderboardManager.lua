@@ -37,6 +37,13 @@ local function retrieveServerLeaderboard(leaderboardData) -- called by sever on 
     print("Leaderboard Data: " .. tostring(leaderboard))
 end
 
+local function updateConfig(data) -- because it breaks in MP when using onVehicleSwitched...?
+    getPlayerVehicle(0):queueLuaCommand([[
+    local config = v.config.partConfigFilename
+    obj:queueGameEngineLua("gameplay_events_freeroam_leaderboardManager.returnConfig('" .. config .."')")
+    ]])
+end
+
 local function isBestTime(entry)
     level = getCurrentLevelIdentifier()
     if not leaderboard then
@@ -140,7 +147,12 @@ local function onWorldReadyState(state)
         level = getCurrentLevelIdentifier()
         loadLeaderboard()
     end
-    AddEventHandler("retrieveServerLeaderboard", retrieveServerLeaderboard)
+    if AddEventHandler then
+        AddEventHandler("retrieveServerLeaderboard", retrieveServerLeaderboard)
+    end
+    if AddEventHandler then
+        AddEventHandler("updateConfig", updateConfig)
+    end
 end
 
 local function onSaveCurrentSaveSlot(currentSavePath)
@@ -153,10 +165,11 @@ local function getLeaderboardEntry(inventoryId, raceLabel)
         leaderboard = {}
     end
     if MPCoreNetwork.isMPSession() then
-        if not leaderboard[level] then
+        if not leaderboard[level] or not leaderboard[currentConfig] then
             return {}
+        else
+            return leaderboard[level][currentConfig][raceLabel]
         end
-        return leaderboard[level][raceLabel]
     end
     if not leaderboard[level] or not leaderboard[level][tostring(inventoryId)] then
         return {}
@@ -172,15 +185,12 @@ local function onCareerActive(active)
     end
 end
 
-local function onVehicleSwitched()
-    getPlayerVehicle(0):queueLuaCommand([[
-    local config = v.config.partConfigFilename
-    obj:queueGameEngineLua("gameplay_events_freeroam_leaderboardManager.returnConfig('" .. config .."')")
-    ]])
-end
+-- local function onVehicleSwitched()
+--    updateConfig()
+-- end
 
-function M.returnConfig(config)
-    print(config)
+local function returnConfig(config)
+    print("The current config is: " .. config)
     currentConfig = config
 end
 
@@ -189,8 +199,9 @@ function M.getLeaderboard()
 end
 
 M.retrieveServerLeaderboard = retrieveServerLeaderboard -- KN8R: adding made data show up again
+M.updateConfig = updateConfig
+M.returnConfig = returnConfig
 M.loadLeaderboard = loadLeaderboard
-M.onVehicleSwitched = onVehicleSwitched
 M.onVehicleRemoved = clearLeaderboardForVehicle
 M.onCareerActive = onCareerActive
 
