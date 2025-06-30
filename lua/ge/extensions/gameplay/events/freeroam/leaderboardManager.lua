@@ -165,10 +165,11 @@ local function getLeaderboardEntry(inventoryId, raceLabel)
         leaderboard = {}
     end
     if MPCoreNetwork.isMPSession() then
-        if not leaderboard[level] or not leaderboard[currentConfig] then
+        updateConfig()
+        if not leaderboard[level] or not leaderboard[level][currentConfig] then
             return {}
         else
-            return leaderboard[level][currentConfig][raceLabel]
+            return leaderboard[level][currentConfig][raceLabel] or {}
         end
     end
     if not leaderboard[level] or not leaderboard[level][tostring(inventoryId)] then
