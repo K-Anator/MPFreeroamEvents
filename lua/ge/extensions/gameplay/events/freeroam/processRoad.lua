@@ -838,7 +838,7 @@ local function reset()
     activeRace = nil
 end
 
-local function onInit()
+local function onExtensionLoaded()
     print("Initializing Road Processing")
 end
 
@@ -847,6 +847,6 @@ M.getRoadNodesFromRace = getRoadNodesFromRace
 M.isLoop = isLoop
 M.reset = reset
 M.checkPlayerOnRoad = checkPlayerOnRoad
-M.onInit = onInit
+M.onExtensionLoaded = onExtensionLoaded
 
 return M
