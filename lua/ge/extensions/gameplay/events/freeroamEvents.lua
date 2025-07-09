@@ -172,9 +172,8 @@ local function payoutRace()
         lapCount = invalidLap and 1 or lapCount
         if race.hotlap then
             -- Hotlap Multiplier
-            local hotlapMultiplier = utils.hotlapMultiplier(lapCount)
-            reward = reward * hotlapMultiplier
-            hotlapMessage = string.format("\nHotlap Multiplier: %.2f", hotlapMultiplier)
+            reward = reward * utils.hotlapMultiplier(lapCount)
+            hotlapMessage = string.format("\nHotlap Multiplier: %.2f", utils.hotlapMultiplier(lapCount))
         end
 
         if newBest and not newBestSession then
@@ -257,8 +256,8 @@ local function payoutDragRace(raceName, finishTime, finishSpeed, vehId)
     local newBestTime = leaderboardManager.addLeaderboardEntry(newEntry)
 
     if not career_career.isActive() then
-        local message = string.format("%s\nTime: %s\nSpeed: %.2f mph", races[raceName].label,
-            utils.formatTime(finishTime), finishSpeed)
+        local message = string.format("%s\nTime: %s\nSpeed: %.2f mph", races[raceName].label, utils.formatTime(finishTime),
+            finishSpeed)
         utils.displayMessage(message, 10)
         return 0
     end
@@ -305,8 +304,8 @@ local function payoutDragRace(raceName, finishTime, finishSpeed, vehId)
 
     -- Prepare the completion message
     local message = string.format("%s\n%s\nTime: %s\nSpeed: %.2f mph\nXP: %d | Reward: $%.2f",
-        newBestTime and "Congratulations! New Best Time!" or "", raceData.label, utils.formatTime(finishTime),
-        finishSpeed, xp, reward)
+        newBestTime and "Congratulations! New Best Time!" or "", raceData.label, utils.formatTime(finishTime), finishSpeed,
+        xp, reward)
 
     if career_modules_hardcore.isHardcoreMode() then
         message = message .. "\nHardcore mode is enabled, all rewards are halved."
@@ -391,20 +390,16 @@ local function exitRace()
     end
 end
 
-
 local function onBeamNGTrigger(data)
     if be:getPlayerVehicleID(0) ~= data.subjectID then
         return
     end
-    if gameplay_walk.isWalking() then
-        return
-    end
+    if gameplay_walk.isWalking() then return end
     if career_career.isActive() then
         if not career_modules_inventory.getInventoryIdFromVehicleId(data.subjectID) then
             return
         end
-        local vehicle = career_modules_inventory.getVehicles()[career_modules_inventory.getInventoryIdFromVehicleId(
-            data.subjectID)]
+        local vehicle = career_modules_inventory.getVehicles()[career_modules_inventory.getInventoryIdFromVehicleId(data.subjectID)]
         if vehicle.loanType then
             return
         end
@@ -550,12 +545,12 @@ local function onBeamNGTrigger(data)
             in_race_time = 0
             mActiveRace = raceName
             lapCount = 0
-            mInventoryId = career_modules_inventory and
-                               career_modules_inventory.getInventoryIdFromVehicleId(data.subjectID) or data.subjectID
+            mInventoryId = career_modules_inventory and career_modules_inventory.getInventoryIdFromVehicleId(data.subjectID) or data.subjectID
             invalidLap = false
 
             utils.displayStartMessage(raceName)
             utils.setActiveLight(raceName, "green")
+
             -- Handle drift races
             if utils.tableContains(races[raceName].type, "drift") then
                 gameplay_drift_general.setContext("inChallenge")
@@ -623,8 +618,8 @@ local function onBeamNGTrigger(data)
                     totalDiff = in_race_time - (leaderboardEntry.splitTimes[checkpointsHit] or 0)
 
                     checkpointMessage = string.format("Checkpoint %d/%d - Time: %s\nSplit: %s | Total: %s",
-                        checkpointsHit, totalCheckpoints, utils.formatTime(in_race_time),
-                        formatSplitDifference(splitDiff), formatSplitDifference(totalDiff))
+                        checkpointsHit, totalCheckpoints, utils.formatTime(in_race_time), formatSplitDifference(splitDiff),
+                        formatSplitDifference(totalDiff))
                 else
                     checkpointMessage = string.format("Checkpoint %d/%d - Time: %s", checkpointsHit, totalCheckpoints,
                         utils.formatTime(in_race_time))
@@ -691,7 +686,7 @@ local function onBeamNGTrigger(data)
             end
             if MPCoreNetwork.isMPSession() then
                 TriggerServerEvent("raceEnd", raceName) -- KN8R: Let the server know a race finished
-            end            
+            end
         end
     elseif triggerType == "pits" then
         if event == "enter" and mActiveRace == raceName then
@@ -718,7 +713,7 @@ local function onBeamNGTrigger(data)
             if MPCoreNetwork.isMPSession() then
                 TriggerServerEvent("racePitExit", lapCount) -- KN8R: Let the server know pit was exited
             end
-        end
+        end    
     else
         -- print("Unknown trigger type: " .. triggerType)
     end
@@ -730,8 +725,29 @@ local function onWorldReadyState(state)
     end
 end
 
-local function onInit()
+local function loadExtensions()
+    print("Initializing Freeroam Events Modules")
+
+    local freeroamPath = "/lua/ge/extensions/gameplay/events/freeroam/"
+    local files = FS:findFiles(freeroamPath, "*.lua", -1, true, false)
+    
+    if files then
+        for _, filePath in ipairs(files) do
+            local filename = string.match(filePath, "([^/]+)%.lua$")
+
+            if filename then
+                local extensionName = "gameplay_events_freeroam_" .. filename
+                setExtensionUnloadMode(extensionName, "manual")
+                print("Loaded extension: " .. extensionName)
+            end
+        end
+    end
+    loadManualUnloadExtensions()
+end
+
+local function onExtensionLoaded()
     print("Initializing Freeroam Events Main")
+    loadExtensions()
     if getCurrentLevelIdentifier() then
         races = utils.loadRaceData()
         if races ~= {} then
@@ -766,10 +782,8 @@ end
 local function formatEventPoi(raceName, race)
     local startObj = scenetree.findObject("fre_start_" .. raceName)
     local pos = startObj and startObj:getPosition() or nil
-
-    if not pos then
-        return nil
-    end
+    
+    if not pos then return nil end
 
     local levelIdentifier = getCurrentLevelIdentifier()
     local preview = "/levels/" .. levelIdentifier .. "/facilities/freeroamEvents/" .. raceName .. ".jpg"
@@ -816,10 +830,8 @@ M.onUpdate = onUpdate
 M.payoutRace = payoutRace
 M.payoutDragRace = payoutDragRace
 M.onWorldReadyState = onWorldReadyState
-M.getRace = function(raceName)
-    return races[raceName]
-end
+M.getRace = function(raceName) return races[raceName] end
 
-M.onInit = onInit
+M.onExtensionLoaded = onExtensionLoaded
 
 return M
