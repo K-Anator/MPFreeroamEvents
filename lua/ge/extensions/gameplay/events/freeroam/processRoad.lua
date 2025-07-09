@@ -776,7 +776,11 @@ end
 
 local function getRoadNodesFromRace(race)
     if type(race.checkpointRoad) == "table" then
-        return mergeRoads(race.checkpointRoad)
+        if not race.checkpointRoad[2] then
+            return getRoadNodes(race.checkpointRoad[1])
+        else
+            return mergeRoads(race.checkpointRoad)
+        end
     else
         return getRoadNodes(race.checkpointRoad)
     end
