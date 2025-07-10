@@ -32,7 +32,7 @@ local targetedHidingState = {
     hidden = false
 }
 
-local function findVehicles(group)
+local function findVehicles(group) -- KN8R: Can this not be done with MPVehicleGE.getOwnMap or .getVehicleMap?
     local vehicles = {}
     for i, objName in ipairs(group:getObjects()) do
         local obj = scenetree.findObject(objName)
@@ -154,7 +154,7 @@ local function showActionDialog(action, playerName, playerId)
     im.PushStyleColor2(im.Col_FrameBg, im.ImVec4(0.08, 0.08, 0.08, 0.9))
     im.PushStyleColor2(im.Col_FrameBgHovered, im.ImVec4(0.15, 0.15, 0.15, 0.9))
     im.PushStyleColor2(im.Col_FrameBgActive, im.ImVec4(0.20, 0.20, 0.20, 0.9))
-    
+
     im.PushStyleVar2(im.StyleVar_WindowPadding, im.ImVec2(15, 15))
     im.PushStyleVar2(im.StyleVar_ItemSpacing, im.ImVec2(8, 8))
     im.PushStyleVar1(im.StyleVar_WindowBorderSize, 0)
@@ -163,7 +163,7 @@ local function showActionDialog(action, playerName, playerId)
         im.PushStyleColor2(im.Col_Text, im.ImVec4(0.95, 0.43, 0.49, 1))
         im.Text(action .. " Player")
         im.PopStyleColor()
-        
+
         im.Separator()
         im.Spacing()
 
@@ -175,9 +175,9 @@ local function showActionDialog(action, playerName, playerId)
         im.SetNextItemWidth(300)
         local reasonBuffer = im.ArrayChar(256)
         for i = 1, #actionDialogState.reason do
-            reasonBuffer[i-1] = string.byte(actionDialogState.reason, i)
+            reasonBuffer[i - 1] = string.byte(actionDialogState.reason, i)
         end
-        
+
         if im.InputText("##reason", reasonBuffer, 256) then
             actionDialogState.reason = ffi.string(reasonBuffer)
         end
@@ -188,7 +188,7 @@ local function showActionDialog(action, playerName, playerId)
 
         local buttonWidth = 120
         local buttonHeight = 30
-        
+
         local windowWidth = im.GetWindowWidth()
         local totalButtonWidth = buttonWidth * 2 + im.GetStyle().ItemSpacing.x
         local startX = (windowWidth - totalButtonWidth) * 0.5
@@ -197,13 +197,13 @@ local function showActionDialog(action, playerName, playerId)
         im.PushStyleColor2(im.Col_Button, im.ImVec4(0.8, 0.2, 0.2, 0.9))
         im.PushStyleColor2(im.Col_ButtonHovered, im.ImVec4(0.9, 0.3, 0.3, 1))
         im.PushStyleColor2(im.Col_ButtonActive, im.ImVec4(0.7, 0.1, 0.1, 1))
-        
+
         if im.Button(action, im.ImVec2(buttonWidth, buttonHeight)) then
             result = "confirm"
             actionDialogState.result = "confirm"
             actionDialogState.isOpen = false
         end
-        
+
         im.PopStyleColor(3)
         im.SameLine()
 
@@ -330,7 +330,7 @@ local function toggleTargetedVehicleVisibility()
         return false
     end
 
-    local allVehicles = findVehicles(missionGroup)
+    local allVehicles = findVehicles(missionGroup) -- KN8R: Can this not be done with MPVehicleGE.getOwnMap or .getVehicleMap?
 
     if not targetedHidingState.hidden then
         for _, vehicle in ipairs(allVehicles) do
@@ -362,7 +362,7 @@ local function toggleTargetedVehicleVisibility()
     return targetedHidingState.hidden
 end
 
-local function MP_hideVehicles(vehicleList)
+local function MP_hideVehicles(vehicleList) -- hide other vehicles
     if not vehicleList or vehicleList == "" then
         return
     end
@@ -388,7 +388,7 @@ local function MP_hideVehicles(vehicleList)
     log('I', 'MPevents', 'Hidden ' .. #vehicleIds .. ' vehicles from MP list')
 end
 
-local function MP_showVehicles(vehicleList)
+local function MP_showVehicles(vehicleList) -- unhide other vehicls
     if not vehicleList or vehicleList == "" then
         return
     end
@@ -414,14 +414,26 @@ local function MP_showVehicles(vehicleList)
     log('I', 'MPevents', 'Shown ' .. #vehicleIds .. ' vehicles from MP list')
 end
 
-local function MP_hideVehicle(vehicleId)
-    local gameVehicleID = MPVehicleGE.getGameVehicleID(vehicleId)
-    if not MPVehicleGE.isOwn(gameVehicleID) then
-        hideVehicle(gameVehicleID)
+local function MP_hideVehicle(data) -- "!hideme" was called, hide this player's vehicles unless own
+    local name = data
+    print("!hideme was called by " .. name .. ", hide their cars")
+    local vehicles = MPVehicleGE.getNicknameMap() -- @treturn table {gameVehicleID_N = OwnerName}
+    for i, v in pairs(vehicles) do
+        print("index: " .. i)
+        print("value: " .. v)
+        if v == name then
+            print("Match found, hide this car: " .. i)
+            hideVehicle(tonumber(i))
+        end
     end
+    -- local gameVehicleID = MPVehicleGE.getGameVehicleID(vehicleId)
+    -- if not MPVehicleGE.isOwn(gameVehicleID) then
+    --    hideVehicle(gameVehicleID)
+    -- end
+    return
 end
 
-local function MP_showVehicle(vehicleId)
+local function MP_showVehicle(vehicleId) -- unhide this player's vehicles
     local gameVehicleID = MPVehicleGE.getGameVehicleID(vehicleId)
     showVehicle(gameVehicleID)
 end
@@ -446,11 +458,11 @@ local function onUpdate(dt)
     if dialogState.isOpen then
         showRaceJoinDialog(dialogState.raceName, dialogState.laps)
     end
-    
+
     if actionDialogState.isOpen then
         showActionDialog(actionDialogState.action, actionDialogState.playerName, actionDialogState.playerId)
     end
-    
+
     if actionDialogState.result == "confirm" then
         local reason = getActionDialogReason()
         if actionDialogState.action == "Kick" then
@@ -461,7 +473,8 @@ local function onUpdate(dt)
                 reason = reason
             }
             TriggerServerEvent("playerAction", jsonEncode(data))
-            print("Kicking player: " .. actionDialogState.playerName .. " (ID: " .. actionDialogState.playerId .. ") - Reason: " .. reason)
+            print("Kicking player: " .. actionDialogState.playerName .. " (ID: " .. actionDialogState.playerId ..
+                      ") - Reason: " .. reason)
         elseif actionDialogState.action == "Ban" then
             local data = {
                 action = "ban",
@@ -470,7 +483,8 @@ local function onUpdate(dt)
                 reason = reason
             }
             TriggerServerEvent("playerAction", jsonEncode(data))
-            print("Banning player: " .. actionDialogState.playerName .. " (ID: " .. actionDialogState.playerId .. ") - Reason: " .. reason)
+            print("Banning player: " .. actionDialogState.playerName .. " (ID: " .. actionDialogState.playerId ..
+                      ") - Reason: " .. reason)
         end
         clearActionDialogResult()
     elseif actionDialogState.result == "cancel" then
@@ -478,7 +492,26 @@ local function onUpdate(dt)
     end
 end
 
-M.addModButtons = addModButtons
+local function onWorldReadyState()
+    if AddEventHandler then
+        AddEventHandler("MP_showVehicle", MP_showVehicle)
+    end
+    if AddEventHandler then
+        AddEventHandler("MP_showVehicles", MP_showVehicles)
+    end
+    if AddEventHandler then
+        AddEventHandler("MP_hideVehicle", MP_hideVehicle)
+    end
+    if AddEventHandler then
+        AddEventHandler("MP_hideVehicles", MP_hideVehicles)
+    end
+    if AddEventHandler then
+        AddEventHandler("addModButtons", addModButtons)
+    end
+end
+
+M.onWorldReadyState = onWorldReadyState
+
 -- Dialog System
 M.openRaceJoinDialog = openRaceJoinDialog
 M.isDialogOpen = isDialogOpen
@@ -504,6 +537,7 @@ M.MP_hideVehicles = MP_hideVehicles
 M.MP_showVehicles = MP_showVehicles
 M.MP_hideVehicle = MP_hideVehicle
 M.MP_showVehicle = MP_showVehicle
+M.addModButtons = addModButtons
 
 M.onUpdate = onUpdate
 

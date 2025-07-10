@@ -33,7 +33,6 @@ end
 local function retrieveServerLeaderboard(leaderboardData) -- called by sever on join
     print("Received leaderboard data from server: " .. leaderboardData)
     leaderboard = jsonDecode(leaderboardData)
-    dump(leaderboard)
     print("Leaderboard Data: " .. tostring(leaderboard))
 end
 
@@ -186,10 +185,6 @@ local function onCareerActive(active)
     end
 end
 
--- local function onVehicleSwitched()
---    updateConfig()
--- end
-
 local function returnConfig(config)
     print("The current config is: " .. config)
     currentConfig = config
@@ -199,10 +194,11 @@ function M.getLeaderboard()
     return leaderboard
 end
 
-M.retrieveServerLeaderboard = retrieveServerLeaderboard -- KN8R: adding made data show up again
+M.retrieveServerLeaderboard = retrieveServerLeaderboard
 M.updateConfig = updateConfig
 M.returnConfig = returnConfig
 M.loadLeaderboard = loadLeaderboard
+
 M.onVehicleRemoved = clearLeaderboardForVehicle
 M.onCareerActive = onCareerActive
 

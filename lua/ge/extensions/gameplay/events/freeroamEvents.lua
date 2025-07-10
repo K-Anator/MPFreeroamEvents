@@ -531,7 +531,7 @@ local function onBeamNGTrigger(data)
             end
             invalidLap = false
             if MPCoreNetwork.isMPSession() then
-                TriggerServerEvent("raceFinishLap", lapCount) -- KN8R: Let server know user completed a lap
+                TriggerServerEvent("playerFinishLap", lapCount) -- KN8R: Let server know user completed a lap
             end
         elseif event == "enter" and staged == raceName then
             -- Start the race
@@ -580,7 +580,7 @@ local function onBeamNGTrigger(data)
             end
 
             if MPCoreNetwork.isMPSession() then
-                TriggerServerEvent("raceBegin", raceName) -- KN8R: Let the server know a race started
+                TriggerServerEvent("playerBegin", raceName) -- KN8R: Let the server know a race started
             end
         else
             -- Player is not staged or race is not active
@@ -627,7 +627,7 @@ local function onBeamNGTrigger(data)
                 utils.displayMessage(checkpointMessage, 7)
                 Assets:displayAssets(data)
                 if MPCoreNetwork.isMPSession() then
-                    TriggerServerEvent("raceCheckpoint", checkpointsHit) -- KN8R: Let the server know a checkpoint was hit
+                    TriggerServerEvent("playerCheckpoint", checkpointsHit) -- KN8R: Let the server know a checkpoint was hit
                 end
             else
                 local missedCheckpoints = checkpointIndex - currentExpectedCheckpoint
@@ -650,7 +650,7 @@ local function onBeamNGTrigger(data)
                     message = message .. "\n" .. checkpointMessage
                     utils.displayMessage(message, 10)
                     if MPCoreNetwork.isMPSession() then
-                        TriggerServerEvent("raceLapInvalidated", missedCheckpoints) -- KN8R: Let the server know a checkpoint was missed
+                        TriggerServerEvent("playerLapInvalidated", missedCheckpoints) -- KN8R: Let the server know a checkpoint was missed
                     end
                 end
             end
@@ -685,7 +685,7 @@ local function onBeamNGTrigger(data)
                 career_modules_pauseTime.enablePauseCounter()
             end
             if MPCoreNetwork.isMPSession() then
-                TriggerServerEvent("raceEnd", raceName) -- KN8R: Let the server know a race finished
+                TriggerServerEvent("playerEnd", raceName) -- KN8R: Let the server know a race finished
             end
         end
     elseif triggerType == "pits" then
@@ -701,7 +701,7 @@ local function onBeamNGTrigger(data)
                 pits.stopThenLimit(37, "MPH")
             end
             if MPCoreNetwork.isMPSession() then
-                TriggerServerEvent("racePitEnter", lapCount) -- KN8R: Let the server know pit was entered
+                TriggerServerEvent("playerPitEnter", lapCount) -- KN8R: Let the server know pit was entered
             end
         elseif event == "exit" and mActiveRace == raceName then
             -- Handle pit exit
@@ -711,7 +711,7 @@ local function onBeamNGTrigger(data)
                 obj:queueLuaCommand("obj:setGhostEnabled(false)")
             end
             if MPCoreNetwork.isMPSession() then
-                TriggerServerEvent("racePitExit", lapCount) -- KN8R: Let the server know pit was exited
+                TriggerServerEvent("playerPitExit", lapCount) -- KN8R: Let the server know pit was exited
             end
         end    
     else
