@@ -580,7 +580,7 @@ local function onBeamNGTrigger(data)
             end
 
             if MPCoreNetwork.isMPSession() then
-                TriggerServerEvent("playerBegin", raceName) -- KN8R: Let the server know a race started
+                TriggerServerEvent("playerBegin", races[raceName].label) -- KN8R: Let the server know a race started
             end
         else
             -- Player is not staged or race is not active
@@ -685,7 +685,7 @@ local function onBeamNGTrigger(data)
                 career_modules_pauseTime.enablePauseCounter()
             end
             if MPCoreNetwork.isMPSession() then
-                TriggerServerEvent("playerEnd", raceName) -- KN8R: Let the server know a race finished
+                TriggerServerEvent("playerEnd", races[raceName].label) -- KN8R: Let the server know a race finished
             end
         end
     elseif triggerType == "pits" then
